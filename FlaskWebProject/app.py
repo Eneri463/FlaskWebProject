@@ -19,15 +19,16 @@ def getLocation(name):
         return location.latitude, location.longitude
     else:
         return False
-        
 
-# запрос на просмотр информации о городе
-@app.route('/cities', methods=['GET'])
+
+# запрос на просмотр информации об одном городе
+@app.route('/city', methods=['GET'])
 def getCity():
     
     try:
         
-        data = request.json.get('name')
+        data = request.json
+        data = data.get('name')
 
         with db.connect() as conn:
                 
@@ -38,17 +39,16 @@ def getCity():
             strinn = res.first()
 
             if strinn:
-                return jsonify({'name': strinn[0], 'latitude': strinn[1], 'longitude': strinn[2], 'message': "OK"}), 200
-
+                return jsonify({'name': strinn[0], 'latitude': strinn[1], 'longitude': strinn[2]}), 200
             else:
-                return jsonify({'message': "Not Found"}), 404
+                return jsonify({'message': 'Not Found'}), 404
         
     except:
-        return jsonify({'message': "Internal Server Error"}), 500
+        return jsonify({'message': 'Something went wrong'}), 400
  
 
 # запрос на добавление информации о городе
-@app.route('/cities', methods=['POST'])
+@app.route('/city', methods=['POST'])
 def postCity():
     
     try:
@@ -63,15 +63,15 @@ def postCity():
             strinn = res.first()
 
         if strinn:
-            return jsonify({'message': "Already exists"}), 200
+            return jsonify({'message': 'Already exists'}), 200
 
         else:
             
             res = getLocation(data)
             
             if res:
-                latitude = res[0]
-                longitude = res[1]
+                latitude = float(res[0])
+                longitude = float(res[1])
 
                 with db.connect() as conn:
 
@@ -84,11 +84,11 @@ def postCity():
             else:
                 return jsonify({'message': "This city does not exist"}), 400
     except:
-        return jsonify({'message': "Internal Server Error"}), 500
+        return jsonify({'message': 'Something went wrong'}), 400
 
 
 # запрос на удаление информации о городе
-@app.route('/cities', methods=['DELETE'])
+@app.route('/city', methods=['DELETE'])
 def delCity():
     
     try:
@@ -104,11 +104,35 @@ def delCity():
             return jsonify({'message': "OK"}), 200
         
     except:
-        return jsonify({'message': "Internal Server Error"}), 500
+        return jsonify({'message': 'Something went wrong'}), 400
+
+
+# запрос на просмотр информации обо всех городах
+@app.route('/cities', methods=['GET'])
+def getCities():
+    
+    try:
+        
+        with db.connect() as conn:
+                
+            res = conn.execute(text("SELECT name, ST_Y(the_geom), ST_X(the_geom) \
+                                    FROM cities;"))
+
+            payload = []
+            content = {}
+            for result in res:
+                content = {'name': result[0], 'latitude': result[1], 'longitude': result[2]}
+                payload.append(content)
+                content = {}
+
+            return jsonify(payload), 200
+        
+    except:
+        return jsonify({'message': 'Something went wrong'}), 400
 
 
  # запрос на поиск ближайшего города по координатам
-@app.route('/nearCity', methods=['GET'])
+@app.route('/nearCities', methods=['GET'])
 def getNearCity():
     
     if request.method == "GET":
@@ -119,15 +143,22 @@ def getNearCity():
         
         try:
             with db.connect() as conn:
-                res = conn.execute(text("SELECT name, ST_Y(the_geom), ST_X(the_geom), \
-                                        MIN(ST_Distance_Sphere(the_geom, ST_GeomFromText('POINT(:p1 :p2)',4326))) \
-                                        as dist FROM cities;"),
+                res = conn.execute(text("SELECT name, ST_DistanceSphere(the_geom, \
+                                        ST_GeomFromText('POINT(:p1 :p2)', 4326)) AS distance \
+                                        FROM cities \
+                                        ORDER BY distance \
+                                        LIMIT 2;"),
                                         {"p2": latitude, "p1": longitude})
 
-                return jsonify({'city': res.first()[0], 'message': "OK"}), 200
+                strinn = res.all()
+                res = []
+
+                for i in strinn:
+                    res.append(i[0])
+
+                return jsonify({'cities': res}), 200
         except:
-            
-            return jsonify({'message': "Internal Server Error"}), 500
+            return jsonify({'message': 'Something went wrong'}), 400
 
 
 if __name__ == '__main__':
@@ -140,4 +171,4 @@ if __name__ == '__main__':
         PORT = 5555
 
     # запускаем локальный сервер
-    app.run(HOST, PORT)
+    app.run(HOST, 5005)

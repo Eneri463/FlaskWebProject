@@ -1,1 +1,22 @@
-Flask>=2.2.3
+blinker @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/blinker_1699474692786/work
+certifi==2024.7.4
+charset-normalizer==3.3.2
+click @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/click_1699473800648/work
+colorama @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/colorama_1699472650914/work
+Flask @ file:///C:/b/abs_f9w7doyu0h/croot/flask_1716545924884/work
+Flask-SQLAlchemy==3.1.1
+geographiclib==2.0
+geopy==2.4.1
+greenlet==3.0.3
+idna==3.7
+itsdangerous @ file:///C:/b/abs_c4vwgdr5yn/croot/itsdangerous_1716533399914/work
+Jinja2 @ file:///C:/b/abs_92fccttino/croot/jinja2_1716993447201/work
+MarkupSafe @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/markupsafe_1707425732791/work
+psycopg2==2.9.9
+requests==2.32.3
+setuptools==72.1.0
+SQLAlchemy==2.0.32
+typing_extensions==4.12.2
+urllib3==2.2.2
+Werkzeug @ file:///C:/b/abs_8bittcw9jr/croot/werkzeug_1716533366070/work
+wheel==0.43.0
