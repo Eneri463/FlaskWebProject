@@ -19,34 +19,6 @@ def getLocation(name):
         return location.latitude, location.longitude
     else:
         return False
-
-
-@app.route('/')
-@app.route('/home')
-def index():
-
-    print(getLocation("Лондон"))
-
-    data = 'London, England'
-
-    try:
-        with db.connect() as conn:
-
-            res = conn.execute(text("SELECT name, ST_Y(the_geom), ST_X(the_geom) \
-                                    FROM cities WHERE name = :name;"),
-                                    {"name": data})
-            conn.commit()
-
-            strinn = res.first()
-
-            if strinn:
-                return jsonify({'name': strinn[0], 'latitude': strinn[1], 
-                                'longitude': strinn[2], 'message': "OK"}), 200
-
-            else:
-                return jsonify({'message': "Not Found"}), 404
-    except:
-        return jsonify({'message': "Internal Server Error"}), 500
         
 
 # запрос на просмотр информации о городе
