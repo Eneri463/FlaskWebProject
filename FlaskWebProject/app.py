@@ -1,10 +1,23 @@
 ﻿from flask import Flask, request, jsonify
 import sqlalchemy
 from sqlalchemy import create_engine, text
+from geopy.geocoders import Nominatim
 
 
 app = Flask(__name__)
 db = create_engine('postgresql://postgres:root@localhost/userdb')
+geolocator = Nominatim(user_agent="app")
+
+
+# получение координат по названию города
+def getLocation(name):
+    
+    location = geolocator.geocode(name, language="ru")
+    
+    if location:
+        return location.latitude, location.longitude
+    else:
+        return False
 
 
 @app.route('/')
@@ -16,7 +29,8 @@ def index():
     try:
         with db.connect() as conn:
 
-            res = conn.execute(text("SELECT name, ST_X(the_geom), ST_Y(the_geom) FROM cities WHERE name = :name;"),
+            res = conn.execute(text("SELECT name, ST_Y(the_geom), ST_X(the_geom) \
+                                    FROM cities WHERE name = :name;"),
                             {"name": data})
             conn.commit()
 
@@ -41,7 +55,8 @@ def getCity():
 
         with db.connect() as conn:
                 
-            res = conn.execute(text("SELECT name, ST_X(the_geom), ST_Y(the_geom) FROM cities WHERE name = :name;"),
+            res = conn.execute(text("SELECT name, ST_Y(the_geom), ST_X(the_geom) \
+                                    FROM cities WHERE name = :name;"),
                             {"name": data})
 
             strinn = res.first()
@@ -65,8 +80,9 @@ def postCity():
         data = request.json.get('name')
         
         with db.connect() as conn:
-            res = conn.execute(text("SELECT name FROM cities WHERE name = :name;"),
-                            {"name": data})
+            res = conn.execute(text("SELECT name \
+                                    FROM cities WHERE name = :name;"),
+                                    {"name": data})
 
             strinn = res.first()
 
@@ -80,8 +96,9 @@ def postCity():
 
             with db.connect() as conn:
 
-                conn.execute(text("INSERT INTO cities (the_geom, name) VALUES (ST_GeomFromText('POINT(:latitude :longitude)', 4326), :name);"),
-                                {"name": data, "latitude": latitude, "longitude": longitude,})
+                conn.execute(text("INSERT INTO cities (the_geom, name) \
+                                  VALUES (ST_GeomFromText('POINT(:latitude :longitude)', 4326), :name);"),
+                                  {"name": data, "latitude": latitude, "longitude": longitude,})
                 conn.commit()
                     
             return jsonify({'message': "Created"}), 201
@@ -116,14 +133,16 @@ def getNearCity():
         
         try:
             with db.connect() as conn:
-                res = conn.execute(text("SELECT name, MIN(ST_Distance_Sphere(the_geom, ST_GeomFromText('POINT(:p1 :p2)',4326))) as dist FROM cities;"),
+                res = conn.execute(text("SELECT name, ST_Y(the_geom), ST_X(the_geom), \
+                                        MIN(ST_Distance_Sphere(the_geom, ST_GeomFromText('POINT(:p1 :p2)',4326))) \
+                                        as dist FROM cities;"),
                              {"p1": latitude, "p2": longitude})
                 conn.commit()
 
-                return jsonify({'city': res.first()[0]}), 201
+                return jsonify({'city': res.first()[0], }), 201
         except:
             
-            return jsonify({'message': "Sourse create"}), 500
+            return jsonify({'message': "Internal Server Error"}), 500
 
 
 if __name__ == '__main__':
