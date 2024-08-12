@@ -10,6 +10,7 @@ geolocator = Nominatim(user_agent="app")
 
 
 # получение координат по названию города
+# название городов ожидаются на русском языке
 def getLocation(name):
     
     location = geolocator.geocode(name, language="ru")
@@ -24,6 +25,8 @@ def getLocation(name):
 @app.route('/home')
 def index():
 
+    print(getLocation("Лондон"))
+
     data = 'London, England'
 
     try:
@@ -31,13 +34,14 @@ def index():
 
             res = conn.execute(text("SELECT name, ST_Y(the_geom), ST_X(the_geom) \
                                     FROM cities WHERE name = :name;"),
-                            {"name": data})
+                                    {"name": data})
             conn.commit()
 
             strinn = res.first()
 
             if strinn:
-                return jsonify({'name': strinn[0], 'latitude': strinn[1], 'longitude': strinn[2]}), 201
+                return jsonify({'name': strinn[0], 'latitude': strinn[1], 
+                                'longitude': strinn[2], 'message': "OK"}), 200
 
             else:
                 return jsonify({'message': "Not Found"}), 404
@@ -62,7 +66,7 @@ def getCity():
             strinn = res.first()
 
             if strinn:
-                return jsonify({'name': strinn[0], 'latitude': strinn[1], 'longitude': strinn[2]}), 201
+                return jsonify({'name': strinn[0], 'latitude': strinn[1], 'longitude': strinn[2], 'message': "OK"}), 200
 
             else:
                 return jsonify({'message': "Not Found"}), 404
@@ -90,19 +94,23 @@ def postCity():
             return jsonify({'message': "Already exists"}), 200
 
         else:
-    
-            latitude = -0.1257
-            longitude = 51.508
+            
+            res = getLocation(data)
+            
+            if res:
+                latitude = res[0]
+                longitude = res[1]
 
-            with db.connect() as conn:
+                with db.connect() as conn:
 
-                conn.execute(text("INSERT INTO cities (the_geom, name) \
-                                  VALUES (ST_GeomFromText('POINT(:latitude :longitude)', 4326), :name);"),
-                                  {"name": data, "latitude": latitude, "longitude": longitude,})
-                conn.commit()
+                    conn.execute(text("INSERT INTO cities (the_geom, name) \
+                                      VALUES (ST_GeomFromText('POINT(:longitude :latitude)', 4326), :name);"),
+                                      {"name": data, "latitude": latitude, "longitude": longitude})
+                    conn.commit()
                     
-            return jsonify({'message': "Created"}), 201
-   
+                return jsonify({'message': "Created"}), 201
+            else:
+                return jsonify({'message': "This city does not exist"}), 400
     except:
         return jsonify({'message': "Internal Server Error"}), 500
 
@@ -112,10 +120,16 @@ def postCity():
 def delCity():
     
     try:
-        data = request.json
-        latitude = data.get('latitude')
-        longitude = data.get('longitude')
-        return "User page: "
+        data = request.json.get('name')
+        
+        with db.connect() as conn:
+
+            conn.execute(text("DELETE FROM cities \
+                              WHERE name = :name"),
+                              {"name": data})
+            conn.commit()
+                    
+            return jsonify({'message': "OK"}), 200
         
     except:
         return jsonify({'message': "Internal Server Error"}), 500
@@ -136,10 +150,9 @@ def getNearCity():
                 res = conn.execute(text("SELECT name, ST_Y(the_geom), ST_X(the_geom), \
                                         MIN(ST_Distance_Sphere(the_geom, ST_GeomFromText('POINT(:p1 :p2)',4326))) \
                                         as dist FROM cities;"),
-                             {"p1": latitude, "p2": longitude})
-                conn.commit()
+                                        {"p2": latitude, "p1": longitude})
 
-                return jsonify({'city': res.first()[0], }), 201
+                return jsonify({'city': res.first()[0], 'message': "OK"}), 200
         except:
             
             return jsonify({'message': "Internal Server Error"}), 500
