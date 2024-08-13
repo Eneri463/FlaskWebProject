@@ -17,6 +17,7 @@
     <Name>FlaskWebProject</Name>
     <RootNamespace>FlaskWebProject</RootNamespace>
     <InterpreterId>CondaEnv|CondaEnv|env</InterpreterId>
+    <SuppressEnvironmentCreationPrompt>True</SuppressEnvironmentCreationPrompt>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -28,8 +29,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="requirements.txt" />
-    <Content Include="templates\base.html" />
-    <Content Include="templates\index.html" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|env" />
@@ -38,9 +37,6 @@
     <Compile Include="app.py">
       <SubType>Code</SubType>
     </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="templates\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.Web.targets" />
   <!-- Specify pre- and post-build commands in the BeforeBuild and 

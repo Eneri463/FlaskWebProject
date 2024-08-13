@@ -27,8 +27,7 @@ def getCity():
     
     try:
         
-        data = request.json
-        data = data.get('name')
+        data = request.args.get('name')
 
         with db.connect() as conn:
                 
@@ -54,35 +53,23 @@ def postCity():
     try:
             
         data = request.json.get('name')
-        
-        with db.connect() as conn:
-            res = conn.execute(text("SELECT name \
-                                    FROM cities WHERE name = :name;"),
-                                    {"name": data})
-
-            strinn = res.first()
-
-        if strinn:
-            return jsonify({'message': 'Already exists'}), 200
-
-        else:
             
-            res = getLocation(data)
+        res = getLocation(data)
             
-            if res:
-                latitude = float(res[0])
-                longitude = float(res[1])
+        if res:
+            latitude = float(res[0])
+            longitude = float(res[1])
 
-                with db.connect() as conn:
+            with db.connect() as conn:
 
-                    conn.execute(text("INSERT INTO cities (the_geom, name) \
-                                      VALUES (ST_GeomFromText('POINT(:longitude :latitude)', 4326), :name);"),
-                                      {"name": data, "latitude": latitude, "longitude": longitude})
-                    conn.commit()
+                conn.execute(text("INSERT INTO cities (the_geom, name) \
+                                    VALUES (ST_GeomFromText('POINT(:longitude :latitude)', 4326), :name);"),
+                                    {"name": data, "latitude": latitude, "longitude": longitude})
+                conn.commit()
                     
-                return jsonify({'message': "Created"}), 201
-            else:
-                return jsonify({'message': "This city does not exist"}), 400
+            return jsonify({'message': "Created"}), 201
+        else:
+            return jsonify({'message': "This city does not exist"}), 400
     except:
         return jsonify({'message': 'Something went wrong'}), 400
 
@@ -92,7 +79,7 @@ def postCity():
 def delCity():
     
     try:
-        data = request.json.get('name')
+        data = request.args.get('name')
         
         with db.connect() as conn:
 
@@ -131,34 +118,33 @@ def getCities():
         return jsonify({'message': 'Something went wrong'}), 400
 
 
- # запрос на поиск ближайшего города по координатам
-@app.route('/nearCities', methods=['GET'])
+ # запрос на поиск ближайших городов по координатам
+@app.route('/nearestCities', methods=['GET'])
 def getNearCity():
-    
-    if request.method == "GET":
         
-        data = request.json
-        latitude = data.get('latitude')
-        longitude = data.get('longitude')
+    try:
         
-        try:
-            with db.connect() as conn:
-                res = conn.execute(text("SELECT name, ST_DistanceSphere(the_geom, \
-                                        ST_GeomFromText('POINT(:p1 :p2)', 4326)) AS distance \
-                                        FROM cities \
-                                        ORDER BY distance \
-                                        LIMIT 2;"),
-                                        {"p2": latitude, "p1": longitude})
+        latitude = float(request.args.get('latitude'))
+        longitude = float(request.args.get('longitude'))
 
-                strinn = res.all()
-                res = []
+        with db.connect() as conn:
+            res = conn.execute(text("SELECT name, ST_Y(the_geom), ST_X(the_geom), ST_DistanceSphere(the_geom, \
+                                    ST_GeomFromText('POINT(:p1 :p2)', 4326)) AS distance \
+                                    FROM cities \
+                                    ORDER BY distance \
+                                    LIMIT 2;"),
+                                    {"p2": latitude, "p1": longitude})
 
-                for i in strinn:
-                    res.append(i[0])
+            payload = []
+            content = {}
+            for result in res:
+                content = {'name': result[0], 'latitude': result[1], 'longitude': result[2]}
+                payload.append(content)
+                content = {}
 
-                return jsonify({'cities': res}), 200
-        except:
-            return jsonify({'message': 'Something went wrong'}), 400
+            return jsonify(payload), 200
+    except:
+        return jsonify({'message': 'Something went wrong'}), 400
 
 
 if __name__ == '__main__':
